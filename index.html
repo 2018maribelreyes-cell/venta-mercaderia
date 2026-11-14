@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Venta de Mercadería</title>
+  <meta name="description" content="Aplicación web progresiva para gestión de productos, ventas rápidas, tickets por WhatsApp y respaldo sin conexión.">
+  
+  <!-- Configuración PWA (Paso 3 del PDF) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0F766E">
+  <link rel="apple-touch-icon" href="icono-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Aviso discreto de modo sin conexión (Paso 7 del PDF) -->
+  <div id="offline-banner" class="banner-offline oculto" role="status" aria-live="polite">
+    ✈️ Sin conexión: tus datos se siguen guardando en este celular
+  </div>
+
+  <!-- Aviso de nueva versión disponible (Paso 8 del PDF) -->
+  <div id="update-banner" class="banner-update oculto" role="alert">
+    🔄 Hay una versión nueva: cerrá y volvé a abrir la app
+  </div>
+
+  <!-- Encabezado principal -->
+  <header class="app-header">
+    <div class="header-info">
+      <h1>🛒 Venta de Mercadería</h1>
+      <p class="subtitulo">Punto de venta móvil • Funciona sin internet</p>
+    </div>
+    <div class="header-stats">
+      <span class="badge-caja" id="caja-hoy">Hoy: $0</span>
+    </div>
+  </header>
+
+  <!-- Contenedor principal -->
+  <main class="app-main">
+
+    <!-- SECCIÓN 1: VENDER (Catálogo + Carrito) -->
+    <section id="vista-vender" class="vista activa">
+      <div class="buscador-box">
+        <input type="search" id="buscar-producto" placeholder="🔍 Buscar mercadería o código..." aria-label="Buscar mercadería">
+      </div>
+
+      <div id="catalogo-grid" class="catalogo-grid">
+        <!-- Tarjetas de productos renderizadas por JS -->
+      </div>
+
+      <!-- Panel Carrito / Venta actual -->
+      <div class="carrito-card">
+        <div class="carrito-header">
+          <h2>🧾 Venta Actual</h2>
+          <button type="button" id="btn-vaciar-carrito" class="btn-secundario btn-sm">Vaciar</button>
+        </div>
+
+        <div id="carrito-lista" class="carrito-lista">
+          <p class="texto-vacio">Tocá un producto arriba para agregarlo a la venta.</p>
+        </div>
+
+        <div class="campo-grupo">
+          <label for="cliente-nombre">Cliente (opcional)</label>
+          <input type="text" id="cliente-nombre" placeholder="Ej: Consumidor Final / Juan Pérez">
+        </div>
+
+        <div class="campo-grupo">
+          <label for="cliente-telefono">WhatsApp del cliente (opcional, solo números)</label>
+          <input type="tel" id="cliente-telefono" inputmode="tel" placeholder="Ej: 5493875123456">
+        </div>
+
+        <div class="carrito-total-box">
+          <span>Total a cobrar:</span>
+          <strong id="carrito-total">$0</strong>
+        </div>
+
+        <div class="acciones-venta">
+          <button type="button" id="btn-registrar-venta" class="btn-primario">
+            ✅ Registrar Venta
+          </button>
+          <button type="button" id="btn-whatsapp-carrito" class="btn-whatsapp">
+            📲 Enviar Presupuesto / Ticket
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: MERCADERÍA (Alta y control de stock) -->
+    <section id="vista-mercaderia" class="vista">
+      <div class="card-form">
+        <h2>📦 Cargar / Editar Mercadería</h2>
+        <form id="form-producto">
+          <input type="hidden" id="prod-id">
+          <div class="campo-grupo">
+            <label for="prod-nombre">Nombre del producto *</label>
+            <input type="text" id="prod-nombre" required placeholder="Ej: Yerba Mate 1kg">
+          </div>
+          <div class="fila-dos">
+            <div class="campo-grupo">
+              <label for="prod-precio">Precio ($) *</label>
+              <input type="number" id="prod-precio" inputmode="decimal" step="0.01" min="0" required placeholder="0.00">
+            </div>
+            <div class="campo-grupo">
+              <label for="prod-stock">Stock inicial *</label>
+              <input type="number" id="prod-stock" inputmode="numeric" step="1" min="0" required placeholder="10">
+            </div>
+          </div>
+          <div class="campo-grupo">
+            <label for="prod-categoria">Rubro / Categoría</label>
+            <input type="text" id="prod-categoria" placeholder="Ej: Almacén, Bebidas, Limpieza">
+          </div>
+          <div class="fila-botones">
+            <button type="submit" class="btn-primario" id="btn-guardar-prod">💾 Guardar Producto</button>
+            <button type="button" class="btn-secundario oculto" id="btn-cancelar-edicion">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="lista-admin-header">
+        <h3>Listado de Mercadería</h3>
+      </div>
+      <div id="lista-productos-admin" class="lista-tarjetas">
+        <!-- Lista editable renderizada por JS -->
+      </div>
+    </section>
+
+    <!-- SECCIÓN 3: HISTORIAL Y RESPALDO JSON -->
+    <section id="vista-historial" class="vista">
+      <div class="card-resumen">
+        <h2>📊 Resumen y Respaldo</h2>
+        <div class="resumen-grid">
+          <div class="stat-box">
+            <span class="stat-label">Ventas Totales</span>
+            <strong id="stat-cant-ventas">0</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Recaudado Total</span>
+            <strong id="stat-total-recaudado">$0</strong>
+          </div>
+        </div>
+
+        <!-- Exportar / Importar JSON (Paso 7 del PDF) -->
+        <div class="respaldo-box">
+          <h3>💾 Datos del Dispositivo (JSON)</h3>
+          <p class="ayuda-texto">Tus ventas y productos se guardan localmente en este teléfono. Exportá el archivo para llevar tus datos a la compu o hacer copia de seguridad.</p>
+          <div class="fila-botones">
+            <button type="button" id="btn-exportar-json" class="btn-primario">
+              📤 Exportar / Compartir JSON
+            </button>
+            <label for="input-importar-json" class="btn-secundario btn-file-label">
+              📥 Importar JSON
+            </label>
+            <input type="file" id="input-importar-json" accept=".json,application/json" class="oculto">
+          </div>
+        </div>
+      </div>
+
+      <div class="lista-admin-header">
+        <h3>Historial de Ventas Realizadas</h3>
+      </div>
+      <div id="lista-ventas" class="lista-tarjetas">
+        <!-- Historial renderizado por JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Barra de navegación inferior fija para el pulgar (< 600px, Paso 1 del PDF) -->
+  <nav class="bottom-nav" aria-label="Menú principal">
+    <button type="button" class="nav-btn activo" data-vista="vista-vender">
+      <span class="nav-ico">🛒</span>
+      <span class="nav-txt">Vender</span>
+    </button>
+    <button type="button" class="nav-btn" data-vista="vista-mercaderia">
+      <span class="nav-ico">📦</span>
+      <span class="nav-txt">Mercadería</span>
+    </button>
+    <button type="button" class="nav-btn" data-vista="vista-historial">
+      <span class="nav-ico">📊</span>
+      <span class="nav-txt">Ventas / JSON</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
